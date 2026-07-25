@@ -27,21 +27,18 @@ zpool import -d /dev/disk/by-id -R /mnt zroot -N -f
 print "Load ZFS keys"
 zfs load-key -L prompt zroot
 
-create_system_dataset () {
-    print "Create slash dataset"
-    zfs create -o mountpoint=/ -o canmount=noauto zroot/ROOT/arch1
+zfs create -o mountpoint=/ -o canmount=noauto zroot/ROOT/arch1
 
-    # Generate zfs hostid
-    print "Generate hostid"
-    zgenhostid
+# Generate zfs hostid
+print "Generate hostid"
+zgenhostid
     
-    # Set bootfs 
-    print "Set ZFS bootfs"
-    zpool set bootfs=zroot/ROOT/arch1 zroot
+# Set bootfs 
+print "Set ZFS bootfs"
+zpool set bootfs=zroot/ROOT/arch1 zroot
 
-    # Manually mount slash dataset
-    zfs mount zroot/ROOT/arch1
-}
+# Manually mount slash dataset
+zfs mount zroot/ROOT/arch1
 
 print "Mount ROOT dataset"
 select ENTRY in $(zfs list | awk '/ROOT\// {print $1}')
