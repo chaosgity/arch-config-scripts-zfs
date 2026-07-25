@@ -28,6 +28,7 @@ print "Load ZFS keys"
 zfs load-key -L prompt zroot
 
 zfs create -o mountpoint=/ -o canmount=noauto zroot/ROOT/arch1
+zfs create -p zroot/ROOT/arch1/home/chaos
 
 # Generate zfs hostid
 print "Generate hostid"
@@ -36,9 +37,6 @@ zgenhostid
 # Set bootfs 
 print "Set ZFS bootfs"
 zpool set bootfs=zroot/ROOT/arch1 zroot
-
-# Manually mount slash dataset
-zfs mount zroot/ROOT/arch1
 
 print "Mount ROOT dataset"
 select ENTRY in $(zfs list | awk '/ROOT\// {print $1}')
