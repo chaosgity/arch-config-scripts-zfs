@@ -46,6 +46,8 @@ do
     break
 done
 
+mkdir -p /mnt/boot/efi
+
 print "Mount EFI part"
 EFI="$DISK-part1"
 mount "$EFI" /mnt/boot/efi
