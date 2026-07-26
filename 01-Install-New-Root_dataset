@@ -39,12 +39,9 @@ print "Set ZFS bootfs"
 zpool set bootfs=zroot/ROOT/arch1 zroot
 
 print "Mount ROOT dataset"
-select ENTRY in $(zfs list | awk '/ROOT\// {print $1}')
-do
-    echo "Mount $ENTRY as slash dataset."
-    zfs mount "$ENTRY"
-    break
-done
+zfs mount zroot/ROOT/arch1
+zfs mount zroot/ROOT/arch1/home
+zfs mount zroot/ROOT/arch1/home/chaos
 
 mkdir -p /mnt/boot/efi
 
