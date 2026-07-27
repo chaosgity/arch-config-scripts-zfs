@@ -28,6 +28,7 @@ print "Load ZFS keys"
 zfs load-key -L prompt zroot
 
 zfs create -o mountpoint=/ -o canmount=noauto zroot/ROOT/arch1
+zfs mount zroot/ROOT/arch1
 zfs create -p zroot/ROOT/arch1/home/chaos
 
 # Generate zfs hostid
@@ -37,11 +38,6 @@ zgenhostid
 # Set bootfs 
 print "Set ZFS bootfs"
 zpool set bootfs=zroot/ROOT/arch1 zroot
-
-print "Mount ROOT dataset"
-zfs mount zroot/ROOT/arch1
-zfs mount zroot/ROOT/arch1/home
-zfs mount zroot/ROOT/arch1/home/chaos
 
 mkdir -p /mnt/boot/efi
 
