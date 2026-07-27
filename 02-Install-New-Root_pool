@@ -2,8 +2,15 @@
 
 set -e
 
+exec &> >(tee "configure.log")
+
 print () {
     echo -e "\n\033[1m> $1\033[0m\n"
+}
+
+ask () {
+    read -p "> $1 " -r
+    echo
 }
 
 # Tests
