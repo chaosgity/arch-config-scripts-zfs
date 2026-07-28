@@ -213,7 +213,7 @@ zfs list -H -o name,mountpoint,canmount,atime,relatime,devices,exec,readonly,set
 systemctl enable zfs-zed.service --root=/mnt
 
 # Configure zfsbootmenu
-mkdir -p /mnt/efi/EFI/ZBM
+mkdir -p /mnt/boot/efi/EFI/zbm
 
 # Generate zfsbootmenu efi
 print 'Configure zfsbootmenu'
