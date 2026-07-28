@@ -281,12 +281,14 @@ then
       --create \
       --label "ZFSBootMenu Backup" \
       --loader "\EFI\ZBM\vmlinuz-backup.efi" \
+      --unicode "spl_hostid=$(hostid) zbm.timeout=3 zbm.prefer=zroot zbm.import_policy=hostid zbm.set_hostid=on" \
       --verbose
     efibootmgr --disk "$DISK" \
       --part 1 \
       --create \
       --label "ZFSBootMenu" \
       --loader "\EFI\ZBM\vmlinuz.efi" \
+      --unicode "spl_hostid=$(hostid) zbm.timeout=3 zbm.prefer=zroot zbm.import_policy=hostid zbm.set_hostid=on" \
       --verbose
 else
     print 'Boot entries already created'
