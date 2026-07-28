@@ -89,7 +89,7 @@ print "Create root dataset"
 zfs create -o mountpoint=none                 zroot/ROOT
 
 # Set cmdline
-zfs set org.zfsbootmenu:commandline="ro quiet" zroot/ROOT
+zfs set org.zfsbootmenu:commandline="noresume init_on_alloc=0 rw spl.spl_hostid=$(hostid)" zroot/ROOT
 
 create_system_dataset () {
     print "Create slash dataset"
