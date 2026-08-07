@@ -114,7 +114,7 @@ create_system_dataset () {
     zfs set keylocation=file:///etc/zfs/keys/zroot.key zroot/ROOT/"$1"
 
     print "Tell ZFSBootMenu where to find the keys"
-    zfs set org.zfsbootmenu:keysource=pool/keystore zroot/ROOT/"$1"
+    zfs set org.zfsbootmenu:keysource=zroot/keystore zroot/ROOT/"$1"
 
     print "Create home dataset"
     zfs create zroot/ROOT/"$1"/home
