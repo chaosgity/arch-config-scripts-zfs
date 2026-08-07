@@ -92,6 +92,9 @@ zfs create -o mountpoint=none                 zroot/ROOT
 print "Create a dataset for keys"
 zfs create -o mountpoint=/etc/zfs/keys zroot/keystore
 
+print "Tell ZFSBootMenu where to find the keys"
+zfs set org.zfsbootmenu:keysource=zroot/keystore zroot
+
 # Set cmdline
 zfs set org.zfsbootmenu:commandline="noresume init_on_alloc=0 rw spl.spl_hostid=$(hostid)" zroot/ROOT
 
@@ -109,12 +112,6 @@ create_system_dataset () {
 
     # Manually mount slash dataset
     zfs mount zroot/ROOT/"$1"
-
-    print "Set the keylocation property"
-    zfs set keylocation=file:///etc/zfs/keys/zroot.key zroot/ROOT/"$1"
-
-    print "Tell ZFSBootMenu where to find the keys"
-    zfs set org.zfsbootmenu:keysource=zroot/keystore zroot/ROOT/"$1"
 
     print "Create home dataset"
     zfs create zroot/ROOT/"$1"/home
