@@ -138,8 +138,8 @@ mount_system () {
     # Mount EFI part
     print "Mount EFI part"
     EFI="$DISK-part1"
-    mkdir -p /mnt/efi
-    mount "$EFI" /mnt/efi
+    mkdir -p /mnt/boot/efi
+    mount "$EFI" /mnt/boot/efi
 }
 
 mount_system "$name_reply"
