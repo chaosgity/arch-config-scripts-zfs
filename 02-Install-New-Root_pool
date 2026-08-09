@@ -57,6 +57,7 @@ mkfs.vfat "$EFI"
 
 # Generate key
 mkdir -p /etc/zfs/keys
+chmod 700 /etc/zfs/keys
 print "Set ZFS passphrase"
 read -r -p "> ZFS passphrase: " -s pass
 echo
