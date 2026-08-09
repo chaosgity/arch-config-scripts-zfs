@@ -90,6 +90,9 @@ zpool create -f -o ashift=12                                  \
 print "Create root dataset"
 zfs create -o mountpoint=none                 zroot/ROOT
 
+print "Create a dataset for keys"
+zfs create -o mountpoint=/etc/zfs/keys zroot/keystore
+
 # Set cmdline
 zfs set org.zfsbootmenu:commandline="noresume init_on_alloc=0 rw spl.spl_hostid=$(hostid)" zroot/ROOT
 
