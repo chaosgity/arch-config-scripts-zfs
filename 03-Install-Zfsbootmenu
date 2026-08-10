@@ -86,7 +86,8 @@ print "Copy ZFS files"
 cp /etc/hostid /mnt/etc/hostid
 cp /etc/zfs/zpool.cache /mnt/etc/zfs/zpool.cache
 mkdir -p /mnt/etc/zfs/keys
-cp /etc/zfs/keys/zroot.key /mnt/etc/zfs/keys
+chmod 700 /mnt/etc/zfs/keys
+cp /etc/zfs/zroot.key /mnt/etc/zfs/keys
 
 ### Configure username
 print 'Set your username'
@@ -136,6 +137,11 @@ EOSF
   zfs create zroot/ROOT/"$root_dataset"/home/${user}
   useradd -m ${user} -G wheel
   chown -R ${user}:${user} /home/${user}
+
+  # Create a dataset for keys
+  zfs create -o mountpoint=/etc/zfs/keys zroot/keystore
+  zfs set keylocation=file:///etc/zfs/keys/zroot.key zroot
+  zfs set org.zfsbootmenu:keysource=zroot/keystore zroot
 
 EOF
 
