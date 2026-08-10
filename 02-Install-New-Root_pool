@@ -107,7 +107,7 @@ create_system_dataset () {
     zfs mount zroot/ROOT/"$1"
 
     print "Create home dataset"
-    zfs create zroot/ROOT/"$1"/home
+    zfs create -o canmount=on zroot/ROOT/"$1"/home
 }
 
 ask "Name of the slash dataset ?"
