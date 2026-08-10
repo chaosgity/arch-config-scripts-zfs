@@ -136,6 +136,7 @@ EOSF
   # Create user
   zfs create zroot/ROOT/"$root_dataset"/home/${user}
   useradd -m ${user} -G wheel
+  zfs mount zroot/ROOT/"$root_dataset"/home/${user}
   chown -R ${user}:${user} /home/${user}
 
   # Create a dataset for keys
