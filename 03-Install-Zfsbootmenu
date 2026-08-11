@@ -154,7 +154,7 @@ EOF
 # Set skel
 print "Set skel for bash shell"
 cp /etc/skel/.bash* /mnt/home/${user}
-chown -R "${user}:${user}" "mnt/home/${user}"
+chown -R "${user}:${user}" "/mnt/home/${user}"
 
 # Set root passwd
 print "Set root password"
