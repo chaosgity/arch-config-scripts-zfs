@@ -153,7 +153,12 @@ EOF
 # Set skel
 print "Set skel for bash shell"
 cp /etc/skel/.bash* /mnt/home/${user}
-chown -R "${user}:${user}" "/mnt/home/${user}"
+
+arch-chroot /mnt /bin/bash -xe <<"EOF"
+
+  # Change bash data to owner user
+  chown -R "${user}:${user}" "/home/${user}"
+EOF
 
 # Set root passwd
 print "Set root password"
