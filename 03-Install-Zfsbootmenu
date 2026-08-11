@@ -139,7 +139,6 @@ EOSF
   groupadd -f ${user}
   groupadd -r audit
   useradd -g ${user} -d /home/${user} -s /bin/bash -G wheel,audit ${user}
-  cp /etc/skel/.bash* /home/${user}
   chown "${user}:${user}" "/home/${user}"
   chmod 755 /home/${user}
   zfs allow ${user} create,mount,mountpoint,snapshot zroot/ROOT/"$root_dataset"/home/${user}
