@@ -139,7 +139,6 @@ EOSF
   groupadd -f ${user}
   groupadd -r audit
   useradd -g ${user} -d /home/${user} -s /bin/bash -G wheel,audit ${user}
-  chown "${user}:${user}" "/home/${user}"
   chmod 755 /home/${user}
   zfs allow ${user} create,mount,mountpoint,snapshot zroot/ROOT/"$root_dataset"/home/${user}
 
@@ -148,16 +147,6 @@ EOSF
   zfs set keylocation=file:///etc/zfs/keys/zroot.key zroot
   zfs set org.zfsbootmenu:keysource=zroot/keystore zroot
 
-EOF
-
-# Set skel
-print "Set skel for bash shell"
-cp /etc/skel/.bash* /mnt/home/${user}
-
-arch-chroot /mnt /bin/bash -xe <<"EOF"
-
-  # Change bash data to owner user
-  chown -R "${user}:${user}" "/home/${user}"
 EOF
 
 # Set root passwd
