@@ -134,9 +134,14 @@ EOSF
   cpanm --notest --installdeps .
 
   # Create user
-  zfs create -o mountpoint=/home/${user} zroot/ROOT/"$root_dataset"/home/${user}
-  useradd -m ${user} -G wheel
+  zfs create zroot/ROOT/"$root_dataset"/home/${user}
+  groupadd -f ${user}
+  groupadd -r audit
+  useradd -g ${user} -d /home/${user} -s /bin/bash -G wheel,audit ${user}
+  cp /etc/skel/.bash* /home/${user}
   chown -R ${user}:${user} /home/${user}
+  chmod 755 /home/${user}
+  zfs allow ${user} create,mount,mountpoint,snapshot zroot/ROOT/"$root_dataset"/home/${user}
 
   # Create a dataset for keys
   zfs create -o mountpoint=/etc/zfs/keys zroot/keystore
