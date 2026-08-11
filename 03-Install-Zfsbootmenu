@@ -134,7 +134,8 @@ EOSF
   cpanm --notest --installdeps .
 
   # Create user
-  zfs create -o mountpoint=/home/${user} zroot/ROOT/"$root_dataset"/home/${user}
+  zfs create zroot/ROOT/"$root_dataset"/home/${user}
+  mkdir -p /home/${user}
   groupadd -f ${user}
   groupadd -r audit
   useradd -g ${user} -d /home/${user} -s /bin/bash -G wheel,audit ${user}
