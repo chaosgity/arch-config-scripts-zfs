@@ -97,8 +97,6 @@ read -r -p "Username: " user
 print 'Create user home dataset'
 zfs create zroot/ROOT/"$root_dataset"/home/${user}
 
-
-
 # Chroot and configure
 print "Chroot and configure system"
 
@@ -140,7 +138,9 @@ EOSF
   cpanm --notest --installdeps .
 
   # Create user
-  useradd -m -d /home/${user} ${user} -G wheel
+  groupadd -r audit
+  useradd -m -d /home/${user} ${user} -G wheel,audit
+  cp -rT /etc/skel /home/${user}
   chown -R "${user}:${user}" "/home/${user}"
 
   # Create a dataset for keys
