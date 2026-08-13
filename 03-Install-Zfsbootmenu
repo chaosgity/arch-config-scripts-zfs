@@ -93,6 +93,12 @@ cp /etc/zfs/zroot.key /mnt/etc/zfs/keys
 print 'Set your username'
 read -r -p "Username: " user
 
+### Create user home dataset
+print 'Create user home dataset'
+zfs create zroot/ROOT/"$root_dataset"/home/${user}
+
+
+
 # Chroot and configure
 print "Chroot and configure system"
 
@@ -134,13 +140,8 @@ EOSF
   cpanm --notest --installdeps .
 
   # Create user
-  zfs create zroot/ROOT/"$root_dataset"/home/${user}
-  mkdir -p /home/${user}
-  groupadd -f ${user}
-  groupadd -r audit
-  useradd -g ${user} -d /home/${user} -s /bin/bash -G wheel,audit ${user}
-  chmod 755 /home/${user}
-  zfs allow ${user} create,mount,mountpoint,snapshot zroot/ROOT/"$root_dataset"/home/${user}
+  useradd -m -d /home/${user} ${user} -G wheel
+  chown -R "${user}:${user}" "/home/${user}"
 
   # Create a dataset for keys
   zfs create -o mountpoint=/etc/zfs/keys zroot/keystore
