@@ -96,6 +96,7 @@ read -r -p "Username: " user
 ### Create user home dataset
 print 'Create user home dataset'
 zfs create zroot/ROOT/"$root_dataset"/home/${user}
+zfs allow ${user} compression,mountpoint,create,mount,snapshot,destroy,send,receive,hold,release zroot/ROOT/"$root_dataset"/home/${user}
 
 # Chroot and configure
 print "Chroot and configure system"
