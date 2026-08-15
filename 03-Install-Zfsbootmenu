@@ -279,8 +279,8 @@ EFI:
 
 Kernel:
   # 'ro' is standard; 'quiet' reduces noise. 
-  # loglevel=4 is useful for debugging boot issues without being too verbose
-  CommandLine: ro quiet loglevel=0 zbm.import_policy=hostid
+  # loglevel=4 is useful for debugging boot issues without being too verbose; loglevel=0 responds to no verbosity
+  CommandLine: ro quiet loglevel=4 zbm.import_policy=hostid
   # Forces the output to be named vmlinuz.EFI
   Prefix: vmlinuz
 EOF
