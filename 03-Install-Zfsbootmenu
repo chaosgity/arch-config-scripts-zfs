@@ -220,9 +220,9 @@ systemctl enable zfs.target --root=/mnt
 
 # Configure zfs-mount-generator
 print "Configure zfs-mount-generator"
-mkdir -p /mnt/etc/zfs/zfs-list.cache
-touch /mnt/etc/zfs/zfs-list.cache/zroot
-zfs list -H -o name,mountpoint,canmount,atime,relatime,devices,exec,readonly,setuid,nbmand | sed 's/\/mnt//' > /mnt/etc/zfs/zfs-list.cache/zroot
+#mkdir -p /mnt/etc/zfs/zfs-list.cache
+#touch /mnt/etc/zfs/zfs-list.cache/zroot
+#zfs list -H -o name,mountpoint,canmount,atime,relatime,devices,exec,readonly,setuid,nbmand | sed 's/\/mnt//' > /mnt/etc/zfs/zfs-list.cache/zroot
 systemctl enable zfs-zed.service --root=/mnt
 
 # Configure zfsbootmenu
