@@ -6,6 +6,11 @@ print () {
     echo -e "\n\033[1m> $1\033[0m\n"
 }
 
+ask () {
+    read -p "> $1 " -r
+    echo
+}
+
 # Set DISK
 select ENTRY in $(ls /dev/disk/by-id/);
 do
