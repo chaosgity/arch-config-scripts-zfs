@@ -34,6 +34,13 @@ zfs create -p zroot/ROOT/arch1/home/chaos
 # Generate zfs hostid
 print "Generate hostid"
 zgenhostid
+
+# Generate key
+print "Set ZFS passphrase"
+read -r -p "> ZFS passphrase: " -s pass
+echo
+echo "$pass" > /etc/zfs/zroot.key
+chmod 000 /etc/zfs/zroot.key
     
 # Set bootfs 
 print "Set ZFS bootfs"
