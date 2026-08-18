@@ -41,7 +41,12 @@ read -r -p "> ZFS passphrase: " -s pass
 echo
 echo "$pass" > /etc/zfs/zroot.key
 chmod 000 /etc/zfs/zroot.key
-    
+
+# Copy ZFS cache
+print "Generate and copy zfs cache"
+mkdir -p /mnt/etc/zfs
+zpool set cachefile=/etc/zfs/zpool.cache zroot
+
 # Set bootfs 
 print "Set ZFS bootfs"
 zpool set bootfs=zroot/ROOT/arch1 zroot
