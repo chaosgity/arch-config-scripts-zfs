@@ -32,9 +32,15 @@ zpool import -d /dev/disk/by-id -R /mnt zroot -N -f
 print "Load ZFS keys"
 zfs load-key -L prompt zroot
 
-zfs create -o mountpoint=/ -o canmount=noauto zroot/ROOT/arch1
-zfs mount zroot/ROOT/arch1
-zfs create -p zroot/ROOT/arch1/home/chaos
+ask "Name of the slash dataset ?"
+name_reply="$REPLY"
+echo "$name_reply" > /tmp/root_dataset
+root_dataset=$(cat /tmp/root_dataset)
+
+zfs create -o mountpoint=/ -o canmount=noauto zroot/ROOT/"$root_dataset"
+zfs mount zroot/ROOT/"$root_dataset"
+zfs create -o mountpoint=/home zroot/ROOT/"$root_dataset"/home
+zfs mount zroot/keystore
 
 # Generate zfs hostid
 print "Generate hostid"
@@ -185,7 +191,6 @@ EOSF
   chown -R "${user}:${user}" "/home/${user}"
 
   # Create a dataset for keys
-  zfs create -o mountpoint=/etc/zfs/keys zroot/keystore
   zfs set keylocation=file:///etc/zfs/keys/zroot.key zroot
   zfs set org.zfsbootmenu:keysource=zroot/keystore zroot
 
@@ -264,6 +269,15 @@ print "Configure zfs-mount-generator"
 #touch /mnt/etc/zfs/zfs-list.cache/zroot
 #zfs list -H -o name,mountpoint,canmount,atime,relatime,devices,exec,readonly,setuid,nbmand | sed 's/\/mnt//' > /mnt/etc/zfs/zfs-list.cache/zroot
 systemctl enable zfs-zed.service --root=/mnt
+
+# Umount all parts
+print "Umount all parts"
+umount /mnt/boot/efi
+zfs unmount -a
+
+# Export zpool
+print "Export zpool"
+zpool export zroot
 
 # Finish
 echo -e "\e[32mAll OK"
