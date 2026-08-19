@@ -60,7 +60,7 @@ zpool set cachefile=/etc/zfs/zpool.cache zroot
 
 # Set bootfs 
 print "Set ZFS bootfs"
-zpool set bootfs=zroot/ROOT/arch1 zroot
+zpool set bootfs=zroot/ROOT/"$root_dataset" zroot
 
 mkdir -p /mnt/boot/efi
 
