@@ -49,7 +49,7 @@ zfs create -o canmount=noauto "${POOL}/ROOT/${BE_NAME}/home/${USERNAME}"
 # Set ZFSBootMenu properties specific to CachyOS (independent keysource + mkinitcpio prefix)
 zfs set org.zfsbootmenu:keysource="${POOL}/ROOT/${BE_NAME}" "${POOL}/ROOT/${BE_NAME}"
 zfs set org.zfsbootmenu:rootprefix="root=ZFS=" "${POOL}/ROOT/${BE_NAME}"
-zfs set org.zfsbootmenu:commandline="rw quiet" "${POOL}/ROOT/${BE_NAME}"
+zfs set org.zfsbootmenu:commandline="rw quiet nowatchdog zswap.enabled=0 maxcpus=1" "${POOL}/ROOT/${BE_NAME}"
 
 echo "==> Mounting datasets onto ${TARGET_MNT}..."
 zfs mount "${POOL}/ROOT/${BE_NAME}"
