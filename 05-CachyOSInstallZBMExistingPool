@@ -304,7 +304,8 @@ chmod +x /usr/local/bin/link-vault.sh
 
 # Ensure vault ownership and create symlinks for ${USERNAME}
 mkdir -p "${VAULT_MNT}"
-chown -R "${USER_UID}:${USER_GID}" "${VAULT_MNT}"
+#chown -R "${USER_UID}:${USER_GID}" "${VAULT_MNT}"
+chown "${USER_UID}:${USER_GID}" "${VAULT_MNT}"
 su - "${USERNAME}" -c "/usr/local/bin/link-vault.sh"
 chown -R "${USER_UID}:${USER_GID}" "/home/${USERNAME}"
 
