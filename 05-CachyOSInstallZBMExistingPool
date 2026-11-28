@@ -15,8 +15,10 @@ VAULT_MNT="/mnt/data"
 
 HOSTNAME="cachyos-zfs"
 TIMEZONE="Europe/Zurich"
-LOCALE="en_US.UTF-8"
+LOCALE_LANGUAGE="en_US.UTF-8"
+LOCALE_SETTING="de_CH.UTF-8"
 KEYMAP="de_CH-latin1"
+FONT="ter-132n"
 
 USERNAME="chaos"
 USER_UID="1000"
@@ -108,10 +110,13 @@ ln -sf "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime
 hwclock --systohc
 
 # Locale & Console Keymap (Swiss German TTY)
-sed -i "s/^#\(${LOCALE}\)/\1/" /etc/locale.gen
+sed -i "s/^#\(${LOCALE_LANGUAGE}\)/\1/" /etc/locale.gen
+sed -i "s/^#\(${LOCALE_SETTING}\)/\1/" /etc/locale.gen
 locale-gen
-echo "LANG=${LOCALE}" > /etc/locale.conf
+echo "LANG=${LOCALE_LANGUAGE}" > /etc/locale.conf
 echo "KEYMAP=${KEYMAP}" > /etc/vconsole.conf
+echo "FONT=${FONT}" >> /etc/vconsole.conf
+
 
 # Hostname & Hosts
 echo "${HOSTNAME}" > /etc/hostname
