@@ -94,7 +94,7 @@ echo "==> Running pacstrap..."
 pacstrap -K "${TARGET_MNT}" \
   base base-devel \
   linux-cachyos linux-cachyos-zfs linux-firmware \
-  zfs-utils iwd sudo nano git \
+  zfs-utils iwd sudo nano vim terminus-font git \
   cachyos-keyring cachyos-mirrorlist cachyos-v3-mirrorlist cachyos-v4-mirrorlist
 
 # Preserve CachyOS optimized pacman.conf from Live ISO
