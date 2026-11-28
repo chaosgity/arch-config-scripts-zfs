@@ -128,7 +128,17 @@ sed -i 's|^FILES=(.*)|FILES=(/etc/zfs/zroot.key /etc/hostid)|' /etc/mkinitcpio.c
 sed -i 's/ fsck//g' /etc/mkinitcpio.conf
 sed -i 's/\bfilesystems\b/zfs filesystems/' /etc/mkinitcpio.conf
 
-# Build initramfs
+# Create mkinitcpio post-hook to restrict initramfs permissions to 0600 (root only)
+mkdir -p /etc/initcpio/post
+cat <<'POSTHOOK' > /etc/initcpio/post/99-secure-initramfs
+#!/usr/bin/env bash
+if [[ -n "${2:-}" && -f "$2" ]]; then
+    chmod 0600 "$2"
+fi
+POSTHOOK
+chmod +x /etc/initcpio/post/99-secure-initramfs
+
+# Build initramfs (triggers 99-secure-initramfs automatically)
 mkinitcpio -P
 
 # Ensure no stale zpool.cache exists and enable ZFS services
