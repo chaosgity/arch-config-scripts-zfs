@@ -1,0 +1,305 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ==========================================
+# CONFIGURATION VARIABLES (Edit as needed)
+# ==========================================
+POOL="zroot"
+SRC_DATASET="zroot/ROOT/ubu0"   # Your existing working Ubuntu BE
+BE_NAME="cachy0"
+TARGET_MNT="/mnt"
+
+# Persistent shared vault across all Boot Environments
+VAULT_DATASET="${POOL}/DATA/vault"
+VAULT_MNT="/mnt/data"
+
+HOSTNAME="cachyos-zfs"
+TIMEZONE="Europe/Zurich"
+LOCALE="en_US.UTF-8"
+KEYMAP="de_CH-latin1"
+
+USERNAME="chaos"
+USER_UID="1000"
+USER_GID="1000"
+
+# ==========================================
+# 1. IMPORT & UNLOCK ENCRYPTED ZFS POOL
+# ==========================================
+echo "==> Importing pool '${POOL}' without mounting existing datasets..."
+if zpool status "${POOL}" &>/dev/null; then
+  zpool export "${POOL}"
+fi
+zpool import -d /dev/disk/by-id -R "${TARGET_MNT}" "${POOL}" -N -f
+
+echo "==> Ensuring cachefile=none on '${POOL}'..."
+zpool set cachefile=none "${POOL}"
+
+echo "==> Unlocking '${POOL}' (enter your pool passphrase)..."
+zfs load-key -L prompt "${POOL}"
+
+# Clear any hardcoded keysource on pool root so each OS BE uses its own keyfile
+zfs inherit org.zfsbootmenu:keysource "${POOL}" || true
+zfs set org.zfsbootmenu:keysource="${SRC_DATASET}" "${SRC_DATASET}"
+zfs set canmount=off "${POOL}/ROOT"
+
+# ==========================================
+# 2. CREATE & MOUNT CACHYOS + VAULT DATASETS
+# ==========================================
+echo "==> Creating Boot Environment ${POOL}/ROOT/${BE_NAME}..."
+zfs create -o mountpoint=/ -o canmount=noauto "${POOL}/ROOT/${BE_NAME}"
+zfs create -o canmount=noauto "${POOL}/ROOT/${BE_NAME}/home"
+zfs create -o canmount=noauto "${POOL}/ROOT/${BE_NAME}/home/${USERNAME}"
+
+# Ensure persistent shared vault dataset exists (auto-mounted on all OSes)
+if ! zfs list "${POOL}/DATA" &>/dev/null; then
+  zfs create -o mountpoint=none -o canmount=off "${POOL}/DATA"
+fi
+if ! zfs list "${VAULT_DATASET}" &>/dev/null; then
+  echo "==> Creating persistent vault dataset ${VAULT_DATASET}..."
+  zfs create -o mountpoint="${VAULT_MNT}" -o canmount=on "${VAULT_DATASET}"
+fi
+
+# Set ZFSBootMenu properties specific to CachyOS
+zfs set org.zfsbootmenu:keysource="${POOL}/ROOT/${BE_NAME}" "${POOL}/ROOT/${BE_NAME}"
+zfs set org.zfsbootmenu:rootprefix="root=ZFS=" "${POOL}/ROOT/${BE_NAME}"
+zfs set org.zfsbootmenu:commandline="rw quiet nowatchdog zswap.enabled=0 maxcpus=1" "${POOL}/ROOT/${BE_NAME}"
+
+echo "==> Mounting datasets onto ${TARGET_MNT}..."
+zfs mount "${POOL}/ROOT/${BE_NAME}"
+zfs mount "${POOL}/ROOT/${BE_NAME}/home"
+zfs mount "${POOL}/ROOT/${BE_NAME}/home/${USERNAME}"
+zfs mount "${VAULT_DATASET}" || true
+
+# ==========================================
+# 3. COPY KEYFILE & HOSTID FROM UBUNTU BE
+# ==========================================
+echo "==> Mounting '${SRC_DATASET}' read-only to copy keyfile and hostid..."
+mkdir -p /tmp/source_root_dataset "${TARGET_MNT}/etc/zfs"
+mount -t zfs -o ro,zfsutil "${SRC_DATASET}" /tmp/source_root_dataset
+
+cp /tmp/source_root_dataset/etc/zfs/zroot.key "${TARGET_MNT}/etc/zfs/zroot.key"
+chmod 000 "${TARGET_MNT}/etc/zfs/zroot.key"
+cp /tmp/source_root_dataset/etc/hostid "${TARGET_MNT}/etc/hostid"
+
+umount /tmp/source_root_dataset
+rmdir /tmp/source_root_dataset
+echo "==> Keyfile and hostid copied successfully."
+
+# ==========================================
+# 4. BOOTSTRAP CACHYOS WITH PACSTRAP
+# ==========================================
+echo "==> Running pacstrap..."
+pacstrap -K "${TARGET_MNT}" \
+  base base-devel \
+  linux-cachyos linux-cachyos-zfs linux-firmware \
+  zfs-utils iwd sudo nano git \
+  cachyos-keyring cachyos-mirrorlist cachyos-v3-mirrorlist cachyos-v4-mirrorlist
+
+# Preserve CachyOS optimized pacman.conf from Live ISO
+cp /etc/pacman.conf "${TARGET_MNT}/etc/pacman.conf"
+
+# ==========================================
+# 5. CONFIGURE SYSTEM INSIDE CHROOT
+# ==========================================
+echo "==> Entering chroot to configure system..."
+arch-chroot "${TARGET_MNT}" /bin/bash -euo pipefail <<EOF
+# Timezone & Hardware Clock
+ln -sf "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime
+hwclock --systohc
+
+# Locale & Console Keymap (Swiss German TTY)
+sed -i "s/^#\(${LOCALE}\)/\1/" /etc/locale.gen
+locale-gen
+echo "LANG=${LOCALE}" > /etc/locale.conf
+echo "KEYMAP=${KEYMAP}" > /etc/vconsole.conf
+
+# Hostname & Hosts
+echo "${HOSTNAME}" > /etc/hostname
+cat <<HOSTS > /etc/hosts
+127.0.0.1   localhost
+127.0.1.1   ${HOSTNAME}
+::1         localhost ip6-localhost ip6-loopback
+HOSTS
+
+# Configure mkinitcpio.conf:
+# 1) Bundle zroot.key and hostid so initramfs unlocks zroot automatically without zpool.cache
+# 2) Add 'zfs' hook before 'filesystems' and remove 'fsck'
+sed -i 's|^FILES=(.*)|FILES=(/etc/zfs/zroot.key /etc/hostid)|' /etc/mkinitcpio.conf
+sed -i 's/ fsck//g' /etc/mkinitcpio.conf
+sed -i 's/\bfilesystems\b/zfs filesystems/' /etc/mkinitcpio.conf
+
+# Build initramfs
+mkinitcpio -P
+
+# Ensure no stale zpool.cache exists and enable ZFS services
+rm -f /etc/zfs/zpool.cache
+systemctl enable \
+  zfs.target \
+  zfs-import-scan.service \
+  zfs-import.target \
+  zfs-mount.service \
+  zfs-zed.service
+
+# Configure systemd-networkd (Dual-Stack IPv4 + IPv6)
+mkdir -p /etc/systemd/network
+
+cat > /etc/systemd/network/10-enX.network <<'NETWORK'
+[Match]
+Name=en*
+
+[Network]
+DHCP=yes
+IPv6AcceptRA=yes
+IPv6PrivacyExtensions=yes
+IPv4Forwarding=yes
+IPv6Forwarding=yes
+
+[DHCPv4]
+UseDNS=no
+RouteMetric=10
+
+[DHCPv6]
+UseDNS=no
+RouteMetric=10
+
+[IPv6AcceptRA]
+UseDNS=no
+RouteMetric=10
+NETWORK
+
+cat > /etc/systemd/network/20-wlX.network <<'NETWORK'
+[Match]
+Name=wl*
+
+[Network]
+DHCP=yes
+IPv6AcceptRA=yes
+IPv6PrivacyExtensions=yes
+IPv4Forwarding=yes
+IPv6Forwarding=yes
+
+[DHCPv4]
+UseDNS=no
+RouteMetric=20
+
+[DHCPv6]
+UseDNS=no
+RouteMetric=20
+
+[IPv6AcceptRA]
+UseDNS=no
+RouteMetric=20
+NETWORK
+
+systemctl enable systemd-networkd
+systemctl disable systemd-networkd-wait-online
+
+# Configure iwd (authentication only; let systemd-networkd handle IPv4/IPv6)
+mkdir -p /etc/iwd
+cat > /etc/iwd/main.conf <<'NETWORK'
+[General]
+UseDefaultInterface=true
+EnableNetworkConfiguration=false
+NETWORK
+systemctl enable iwd
+
+# Configure systemd-resolved with IPv4 + IPv6 DNS servers
+mkdir -p /etc/systemd/resolved.conf.d
+cat > /etc/systemd/resolved.conf.d/dns.conf <<'NETWORK'
+[Resolve]
+DNS=1.1.1.1 2606:4700:4700::1111
+FallbackDNS=8.8.8.8 2001:4860:4860::8888
+NETWORK
+systemctl enable systemd-resolved
+
+# Populate zfs-list.cache for systemd zfs-mount-generator
+mkdir -p /etc/zfs/zfs-list.cache
+touch "/etc/zfs/zfs-list.cache/${POOL}"
+zed -F &
+ZED_PID=\$!
+sleep 2
+zfs set canmount=noauto "${POOL}/ROOT/${BE_NAME}/home"
+zfs set canmount=noauto "${POOL}/ROOT/${BE_NAME}/home/${USERNAME}"
+zfs set canmount=on "${VAULT_DATASET}"
+sleep 1
+kill "\${ZED_PID}" || true
+
+# Strip /mnt prefix from zfs-list.cache so boot mountpoints resolve to / and /mnt/data
+sed -i "s|${TARGET_MNT}||g" "/etc/zfs/zfs-list.cache/${POOL}"
+
+# Create primary user group (1000) and user without creating home (-M) since ZFS dataset is mounted
+groupadd -g "${USER_GID}" "${USERNAME}"
+useradd -M -u "${USER_UID}" -g "${USER_GID}" -G wheel -d "/home/${USERNAME}" -s /bin/bash "${USERNAME}"
+cp -rT /etc/skel "/home/${USERNAME}"
+chown -R "${USER_UID}:${USER_GID}" "/home/${USERNAME}"
+
+# Create reusable vault-linking script for future cloned Boot Environments
+cat <<'SCRIPT' > /usr/local/bin/link-vault.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+VAULT="${VAULT_MNT}"
+USER_HOME="\$HOME"
+
+DIRS=(
+    "Documents"
+    "Downloads"
+    "Music"
+    "Pictures"
+    "Videos"
+    "Projects"
+    ".local/share/Steam"
+)
+
+for dir in "\${DIRS[@]}"; do
+    TARGET="\${VAULT}/\${dir}"
+    LINK="\${USER_HOME}/\${dir}"
+
+    mkdir -p "\${TARGET}"
+    mkdir -p "\$(dirname "\${LINK}")"
+
+    if [ -d "\${LINK}" ] && [ ! -L "\${LINK}" ]; then
+        cp -rn "\${LINK}/." "\${TARGET}/" 2>/dev/null || true
+        rm -rf "\${LINK}"
+    fi
+
+    ln -sfn "\${TARGET}" "\${LINK}"
+done
+SCRIPT
+chmod +x /usr/local/bin/link-vault.sh
+
+# Ensure vault ownership and create symlinks for ${USERNAME}
+mkdir -p "${VAULT_MNT}"
+chown -R "${USER_UID}:${USER_GID}" "${VAULT_MNT}"
+su - "${USERNAME}" -c "/usr/local/bin/link-vault.sh"
+chown -R "${USER_UID}:${USER_GID}" "/home/${USERNAME}"
+
+# Allow wheel group sudo access
+echo "%wheel ALL=(ALL:ALL) ALL" > /etc/sudoers.d/10-wheel
+chmod 440 /etc/sudoers.d/10-wheel
+EOF
+
+# Symlink systemd-resolved outside chroot (while resolv.conf is no longer bind-mounted)
+echo "==> Symlinking systemd-resolved stub..."
+rm -f "${TARGET_MNT}/etc/resolv.conf"
+ln -s /run/systemd/resolve/stub-resolv.conf "${TARGET_MNT}/etc/resolv.conf"
+
+# ==========================================
+# 6. SET PASSWORDS & CLEAN EXPORT
+# ==========================================
+echo "==> Set ROOT password for CachyOS:"
+arch-chroot "${TARGET_MNT}" passwd
+
+echo "==> Set password for user '${USERNAME}':"
+arch-chroot "${TARGET_MNT}" passwd "${USERNAME}"
+
+echo "==> Taking initial clean snapshot..."
+zfs snapshot -r "${POOL}/ROOT/${BE_NAME}@fresh-install"
+
+echo "==> Unmounting and exporting ${POOL}..."
+zfs umount -a
+zpool export "${POOL}"
+
+echo "=========================================="
+echo "Done! Reboot and select ${POOL}/ROOT/${BE_NAME} in ZFSBootMenu."
+echo "=========================================="
