@@ -109,14 +109,33 @@ arch-chroot "${TARGET_MNT}" /bin/bash -euo pipefail <<EOF
 ln -sf "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime
 hwclock --systohc
 
-# Locale & Console Keymap (Swiss German TTY)
-sed -i "s/^#\(${LOCALE_LANGUAGE}\)/\1/" /etc/locale.gen
-sed -i "s/^#\(${LOCALE_SETTING}\)/\1/" /etc/locale.gen
+# Uncomment unique locales in /etc/locale.gen (handles optional space after '#')
+for loc in $(printf "%s\n" "${LOCALE_LANGUAGE}" "${LOCALE_SETTING}" | sort -u); do
+    sed -i "s/^# *\(${loc}\)/\1/" /etc/locale.gen
+done
 locale-gen
-echo "LANG=${LOCALE_LANGUAGE}" > /etc/locale.conf
-echo "KEYMAP=${KEYMAP}" > /etc/vconsole.conf
-echo "FONT=${FONT}" >> /etc/vconsole.conf
 
+# Write /etc/locale.conf
+printf '%s\n' \
+    "LANG=${LOCALE_LANGUAGE}" \
+    "LC_MESSAGES=${LOCALE_LANGUAGE}" \
+    "LC_TIME=${LOCALE_SETTING}" \
+    "LC_NUMERIC=${LOCALE_SETTING}" \
+    "LC_MONETARY=${LOCALE_SETTING}" \
+    "LC_COLLATE=${LOCALE_SETTING}" \
+    "LC_PAPER=${LOCALE_SETTING}" \
+    "LC_NAME=${LOCALE_SETTING}" \
+    "LC_ADDRESS=${LOCALE_SETTING}" \
+    "LC_TELEPHONE=${LOCALE_SETTING}" \
+    "LC_MEASUREMENT=${LOCALE_SETTING}" \
+    "LC_IDENTIFICATION=${LOCALE_SETTING}" \
+    > /etc/locale.conf
+
+# Write /etc/vconsole.conf
+printf '%s\n' \
+    "KEYMAP=${KEYMAP}" \
+    "FONT=${FONT}" \
+    > /etc/vconsole.conf
 
 # Hostname & Hosts
 echo "${HOSTNAME}" > /etc/hostname
